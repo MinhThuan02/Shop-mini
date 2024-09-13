@@ -33,7 +33,7 @@
                         <div class="header__top__right__auth">
                             <a href="/login"><i class="fa fa-user"></i> Đăng nhập</a>
                         </div>
-                        @else 
+                        @else
                         <!-- User Profile and Logout -->
                         <div class="header__top__right__user">
                             <img src="img/user-avatar.png" alt="User Avatar" class="user-avatar">
@@ -47,7 +47,7 @@
                         </div>
                     </div>
                 </div>
-                
+
             </div>
         </div>
     </div>
@@ -76,14 +76,22 @@
                     </ul>
                 </nav>
             </div>
-            <div class="col-lg-2">
-                <div class="header__cart">
-                    <ul>
-                        <li><a href="cart"><i class="fa fa-shopping-bag"></i> <span>3</span></a></li>
+            <div class="col-lg-2"> <div class="header__cart">
+                @if(!Auth::check())
+                 <ul>
+                    <li><a href=""><i class="fa fa-shopping-bag"></i>
+                        <span id="cart-quantity">{{ Cart::getTotalQuantity() }}</span>
+                    </a></li>
+                 </ul>
+                  @else
+                  <ul>
+                    <li>
+                        <a href="{{ route('cart') }}"><i class="fa fa-shopping-bag"></i>
+                            <span id="cart-quantity">{{ Cart::getTotalQuantity() }}</span>
+                        </a></li>
                     </ul>
-                    <div class="header__cart__price">Tổng: <span>200.000 đ</span></div>
-                </div>
-            </div>
+                    @endif
+                    <div class="header__cart__price">Tổng: <span id="cart-total">{{ number_format(Cart::getTotal(), 0, ',', '.') }} VND</span></div> </div> </div>
         </div>
         <div class="row">
             <div class="col-lg-12">
@@ -102,3 +110,59 @@
     </div>
 </header>
 <!-- Header Section End -->
+
+<script>
+    $(document).ready(function() {
+        $('.add-to-cart').on('click', function(e) {
+            e.preventDefault();
+
+            var productId = $(this).data('product-id');
+
+            $.ajax({
+                url: '{{ url('/save-cart') }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    productid_hidden: productId,
+                    qty: 1 // Assuming default quantity is 1
+                },
+                success: function(response) {
+                    // Update cart quantity and total price in the UI
+                    $('#cart-quantity').text(response.total_quantity);
+                    $('#cart-total').text(response.total_price.toLocaleString('vi-VN') + ' VND');
+                },
+                error: function(error) {
+                    console.error('Error adding product to cart:', error);
+                }
+            });
+        });
+
+        // Update cart item quantity
+        $('.update-cart').on('change', function(e) {
+            e.preventDefault();
+
+            var id = $(this).data('id');
+            var quantity = $(this).val();
+
+            $.ajax({
+                url: '{{ url('/update-cart') }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    id: id,
+                    quantity: quantity
+                },
+                success: function(response) {
+                    if(response.success) {
+                        $('#cart-subtotal').text(response.cartSubtotal);
+                        $('#cart-total').text(response.cartTotal);
+                        $('#item-subtotal-' + id).text(response.itemSubtotal);
+                    }
+                },
+                error: function(error) {
+                    console.error('Error updating cart:', error);
+                }
+            });
+        });
+    });
+    </script>
